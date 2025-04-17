@@ -1,0 +1,11 @@
+# HELP unit_test_passed Total passed unit tests
+# TYPE unit_test_passed gauge
+unit_test_passed 5
+
+# HELP unit_test_failed Total failed unit tests
+# TYPE unit_test_failed gauge
+unit_test_failed 0
+
+# HELP failed_tests Names of the failed test cases
+# TYPE failed_tests gauge
+failed_tests "No failed tests"

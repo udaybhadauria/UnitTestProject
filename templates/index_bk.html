@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Unit Test Results Dashboard</title>
+    <meta charset="UTF-8">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            margin: 40px;
+            background-color: white;
+            color: black;
+            transition: background-color 0.5s, color 0.5s;
+        }
+        body.dark {
+            background-color: #121212;
+            color: #90ee90;
+        }
+
+        /* Scrolling Banner */
+        .scrolling-banner {
+            width: 100%;
+            overflow: hidden;
+            white-space: nowrap;
+            box-sizing: border-box;
+            background: linear-gradient(90deg, #f0f0f0, #d9eaff);
+            padding: 10px 0;
+            font-weight: bold;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .scrolling-banner span {
+            display: inline-block;
+            padding-left: 100%;
+            animation: scroll-left 15s linear infinite;
+        }
+        @keyframes scroll-left {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-100%); }
+        }
+
+        /* Typewriter Title */
+        h1 {
+            text-align: center;
+            font-size: 36px;
+            margin-top: 30px;
+            color: #333;
+            transition: color 0.5s ease;
+        }
+
+        body.dark h1 {
+            color: #90ee90; /* Light green in dark mode */
+        }
+
+
+        /* Date and Time Blocks */
+        #dateDay, #currentTime, #nextTestTime {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 18px;
+            animation: fadeIn 2s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Table Styling */
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 20px;
+            animation: fadeIn 1.2s ease-in-out;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 10px;
+            text-align: center;
+        }
+        th {
+            background-color: #f2f2f2;
+            cursor: pointer;
+        }
+        tr.passed-row { background-color: #e0f7e9; }
+        tr.failed-row { background-color: #fce4e4; }
+        body.dark tr.passed-row { background-color: #1b3e2b; }
+        body.dark tr.failed-row { background-color: #3b1b1b; }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        select, button, input[type="text"] {
+            padding: 6px 12px;
+            margin: 5px;
+            font-size: 14px;
+            border-radius: 6px;
+        }
+
+        /* Chart Styling */
+        #chart-container {
+            width: 300px;
+            margin-top: 30px;
+        }
+
+        /* Summary Cards */
+        .summary-cards {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            gap: 10px;
+            animation: floatUp 1.2s ease-in-out;
+        }
+        .card {
+            flex: 1;
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 18px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        .badge {
+            padding: 10px 16px;
+            border-radius: 25px;
+            font-weight: bold;
+            display: inline-block;
+            animation: pulse 2s infinite;
+        }
+        .badge.pass { background-color: #4caf50; color: white; }
+        .badge.fail { background-color: #f44336; color: white; }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(76,175,80, 0.4); }
+            70% { box-shadow: 0 0 0 12px rgba(76,175,80, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(76,175,80, 0); }
+        }
+
+        @keyframes floatUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Glowing Button Effect */
+        button:hover {
+            box-shadow: 0 0 10px #00c8ff, 0 0 20px #00c8ff;
+            transition: 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Banner -->
+    <div class="scrolling-banner">
+        <span>🚀 Developed with ♡ in Sunnyvale CA | 🚨 Unit Test Automation with Style 💥</span>
+    </div>
+
+    <!-- Date and Time -->
+    <div id="dateDay">📅 --:--:--</div>
+    <div id="currentTime">🕒 Current Time: {{ current_time }}</div>
+    <!-- <div id="nextTestTime">⏰ Next Test in: {{ next_test_time }}</div> -->
+
+    <h1>Unit Test Results Dashboard</h1>
+
+    <!-- Controls -->
+    <div class="controls">
+        <form method="get">
+            <label for="status">Filter by Status:</label>
+            <select name="status" id="status" onchange="this.form.submit()">
+                <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All</option>
+                <option value="passed" {% if status_filter == 'passed' %}selected{% endif %}>Passed</option>
+                <option value="failed" {% if status_filter == 'failed' %}selected{% endif %}>Failed</option>
+            </select>
+        </form>
+
+        <input type="text" id="searchInput" onkeyup="searchTable()" placeholder="Search by date/test...">
+
+        <div>
+            <button onclick="downloadCSV()">Download CSV</button>
+            <button onclick="downloadExcel()">Download Excel</button>
+            <button onclick="toggleDarkMode()">🌙 Toggle Dark Mode</button>
+        </div>
+    </div>
+
+    {% if data %}
+    <div class="summary-cards">
+        <div class="card">🧪 Total: {{ data[0]['Total Tests'] }}</div>
+        <div class="card">✅ Passed: {{ data[0]['Passed'] }}</div>
+        <div class="card">❌ Failed: {{ data[0]['Failed'] }}</div>
+        <div class="card badge {{ 'pass' if data[0]['Status'] == 'Passed' else 'fail' }}">
+            {{ '✔️ All Passed' if data[0]['Status'] == 'Passed' else '❌ Some Failed' }}
+        </div>
+    </div>
+
+    <table id="resultsTable">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Total</th>
+                <th>Passed</th>
+                <th>Failed</th>
+                <th>Status</th>
+                <th>Failed Test Cases</th>
+                <th>Email</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for row in data %}
+        <tr class="{{ 'passed-row' if row['Status'] == 'Passed' else 'failed-row' }}">
+            <td>{{ row['Date'] }}</td>
+            <td>{{ row['Time'] }}</td>
+            <td>{{ row['Total Tests'] }}</td>
+            <td>{{ row['Passed'] }}</td>
+            <td>{{ row['Failed'] }}</td>
+            <td>{{ row['Status'] }}</td>
+            <td>{{ row['Failed Test Cases'] }}</td>
+            <td><button onclick="sendEmail('{{ row['Date'] }}', '{{ row['Time'] }}')">📧 Send</button></td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <div id="chart-container">
+        <canvas id="testChart"></canvas>
+    </div>
+    {% else %}
+    <p>No test results found.</p>
+    {% endif %}
+
+    <!-- JS -->
+    <script>
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark');
+        }
+
+        function searchTable() {
+            let input = document.getElementById("searchInput").value.toLowerCase();
+            let rows = document.querySelectorAll("#resultsTable tbody tr");
+            rows.forEach(row => {
+                let text = row.innerText.toLowerCase();
+                row.style.display = text.includes(input) ? "" : "none";
+            });
+        }
+
+        function downloadCSV() {
+            window.location.href = "/static/results.csv";
+        }
+
+        function downloadExcel() {
+            window.location.href = "/download/excel";
+        }
+
+        function sendEmail(date, time) {
+            const body = `Test report from ${date} ${time}.\nCheck dashboard or CSV.`;
+            const subject = `Unit Test Report - ${date} ${time}`;
+            window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        }
+
+        function updateDateTime() {
+            const now = new Date();
+            const dateString = now.toLocaleDateString();
+            const dayString = now.toLocaleString('en-US', { weekday: 'long' });
+            document.getElementById("dateDay").innerText = `📅 ${dateString}, ${dayString}`;
+            const currentTimeString = now.toLocaleTimeString();
+            document.getElementById("currentTime").innerText = `🕒 Current Time: ${currentTimeString}`;
+            const nextTestTime = new Date(now.getTime() + 12 * 60 * 60 * 1000);
+            const nextTestString = nextTestTime.toLocaleTimeString();
+            document.getElementById("nextTestTime").innerText = `⏰ Next Test in: ${nextTestString}`;
+        }
+
+        setInterval(updateDateTime, 1000);
+        updateDateTime();
+    </script>
+</body>
+</html>
