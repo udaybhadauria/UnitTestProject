@@ -84,7 +84,7 @@ echo "Failed Test Cases: $FAILED_TEST_CASES"
 # SLACK NOTIFICATION SECTION
 #########################################
 
-SLACK_WEBHOOK_URL="https://hooks.slack.com/services/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"  # Replace with your actual Slack webhook URL
+SLACK_WEBHOOK_URL="https://hooks.slack.com/services/Singh/Bhadauria/Uday"  # Replace with your actual Slack webhook URL
 
 # Escape quotes and backslashes for JSON
 SUMMARY=$(echo "$TEST_OUTPUT" | tail -n 10 | sed 's/\\/\\\\/g' | sed 's/"/\\"/g')
